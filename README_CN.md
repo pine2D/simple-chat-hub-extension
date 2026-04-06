@@ -57,6 +57,8 @@ ChatGPT / Copilot / Gemini / Meta / Mistral / Grok / Poe / Perplexity / You.com 
 - **❤️ Adrien Feudjio**
 - **❤️ L*I**
 - **❤️ huyz**
+- **❤️ \*宝**
+- **❤️ baijunyao**
 
 有一些匿名捐助者无法在此处被记录，如果您希望留下您的名字，请在捐助时备注
 

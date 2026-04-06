@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.4.0 [2026.04.06]
+
+- feat: custom shortcuts support
+- feat: remove Space support
+- fix: bugfix
+
 ## 2.3.0 [2026.03.11]
 
 - feat: duplicate chat platforms support
