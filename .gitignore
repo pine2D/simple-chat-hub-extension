@@ -1,1 +1,5 @@
 .DS_Store
+
+# 解包扩展的中间产物（原始 zip 已在仓库根目录）
+src/*.crx
+src/__MACOSX/

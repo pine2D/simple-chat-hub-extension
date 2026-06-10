@@ -1,0 +1,8 @@
+{
+  "extension_name": {
+    "message": "Simple Chat Hub"
+  },
+  "extension_description": {
+    "message": "A browser extension aggregating numerous mainstream AI chat model platforms, supporting synchronous multi-platform chat."
+  }
+}
