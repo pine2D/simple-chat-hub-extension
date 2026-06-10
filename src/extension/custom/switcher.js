@@ -84,11 +84,13 @@
   // 只接受来自本扩展页面(chatHub)的指令：发送方 origin 必须是本扩展的 chrome-extension:// 源，
   // 避免任意网页/子帧 postMessage 触发模型切换。
   function isTrustedOrigin(origin) {
-    if (!/^chrome-extension:\/\//.test(origin || "")) return false;
+    if (!origin || !/^chrome-extension:\/\//.test(origin)) return false;
     try {
-      if (chrome && chrome.runtime && chrome.runtime.id) return origin === "chrome-extension://" + chrome.runtime.id;
-    } catch (e) {}
-    return true; // content script 外(chrome.runtime 不可用)退化为仅校验扩展协议
+      const id = chrome && chrome.runtime && chrome.runtime.id;
+      return !!id && origin === "chrome-extension://" + id; // fail-closed：拿不到 id 即拒绝
+    } catch (e) {
+      return false;
+    }
   }
 
   window.addEventListener("message", (ev) => {
