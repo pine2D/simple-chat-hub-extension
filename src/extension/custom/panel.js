@@ -2,7 +2,8 @@
 (function () {
   "use strict";
 
-  const HOSTS = ["claude.ai", "chatgpt.com", "gemini.google.com"];
+  const HOSTS = ["claude.ai", "chatgpt.com", "gemini.google.com",
+    "doubao.com", "deepseek.com", "qianwen.com", "kimi.com"];
 
   function broadcast(mode) {
     let sent = 0;
@@ -18,17 +19,20 @@
     return sent;
   }
 
-  function makeBtn(label, mode) {
+  function makeBtn(label, mode, cls) {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = label;
     b.dataset.schBtn = mode;
-    b.style.cssText =
-      "margin-left:8px;padding:4px 12px;border-radius:9px;border:1px solid rgba(127,127,127,.35);" +
-      "background:rgba(127,127,127,.06);color:inherit;cursor:pointer;font-size:13px;white-space:nowrap;" +
-      "line-height:1.5;transition:background .15s,border-color .15s";
-    b.addEventListener("mouseenter", () => { b.style.background = "rgba(127,127,127,.16)"; });
-    b.addEventListener("mouseleave", () => { b.style.background = "rgba(127,127,127,.06)"; });
+    if (cls) {
+      b.className = cls; // 复用 New Chat 的 Ant 按钮样式，外观完全一致(含 hover/暗色)
+      b.style.marginLeft = "8px";
+    } else {
+      // 兜底：找不到锚点(floating 模式)时的独立样式
+      b.style.cssText =
+        "margin-left:8px;padding:4px 12px;border-radius:9px;border:1px solid rgba(127,127,127,.35);" +
+        "background:rgba(127,127,127,.06);color:inherit;cursor:pointer;font-size:13px;white-space:nowrap;line-height:1.5";
+    }
     b.addEventListener("click", () => broadcast(mode));
     return b;
   }
@@ -46,12 +50,13 @@
 
   function inject() {
     if (document.querySelector("[data-sch-group]")) return true;
+    const anchor = findAnchor();
+    const cls = anchor ? anchor.className : "";
     const group = document.createElement("span");
     group.dataset.schGroup = "1";
     group.style.cssText = "display:inline-flex;align-items:center;vertical-align:middle";
-    group.appendChild(makeBtn("🧠 深度思考", "think"));
-    group.appendChild(makeBtn("⚡ 快速模型", "fast"));
-    const anchor = findAnchor();
+    group.appendChild(makeBtn("🧠 深度思考", "think", cls));
+    group.appendChild(makeBtn("⚡ 快速模型", "fast", cls));
     if (anchor && anchor.parentElement) {
       anchor.insertAdjacentElement("afterend", group);
     } else {
