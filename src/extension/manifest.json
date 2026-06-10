@@ -1,0 +1,69 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+  "name": "__MSG_extension_name__",
+  "description": "__MSG_extension_description__",
+  "version": "2.4.0",
+  "homepage_url": "https://chathub.aipilot.cc/",
+  "manifest_version": 3,
+  "default_locale": "en",
+  "icons": {
+    "16": "img/logo-16.png",
+    "32": "img/logo-34.png",
+    "48": "img/logo-48.png",
+    "128": "img/logo-128.png"
+  },
+  "action": {
+    "default_icon": "img/logo-48.png"
+  },
+  "options_page": "chatHub.html",
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*", "https://chatgpt.com/*", "https://gemini.google.com/*"],
+      "js": ["custom/switcher.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "matches": [],
+      "resources": [
+        "img/logo-16.png",
+        "img/logo-34.png",
+        "img/logo-48.png",
+        "img/logo-128.png"
+      ],
+      "use_dynamic_url": false
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "resources": [
+        "assets/chunk-06acad6c.js",
+        "assets/chunk-18c69788.js",
+        "assets/chunk-1f8f82b9.js",
+        "assets/chunk-9af4a4ac.js",
+        "assets/chunk-cf010ec4.js",
+        "assets/chunk-9a2e4b03.js",
+        "assets/chunk-299a0bd1.js",
+        "assets/chunk-a682ba63.js"
+      ],
+      "use_dynamic_url": false
+    }
+  ],
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}
