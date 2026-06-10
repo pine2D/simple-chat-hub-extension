@@ -1,4 +1,5 @@
-// custom/switcher.js — 运行于各 AI 站 iframe (all_frames)。收指令切模型/思考档。
+// custom/switcher.js — 核心：helpers + 注册表 + message 监听 + runMode。
+// 各站点适配器在 custom/adapters.js 注册到 window.__SCH.adapters（content_scripts 顺序保证其后加载）。
 (function () {
   "use strict";
 
@@ -58,143 +59,8 @@
     } catch (e) {}
   }
 
-  // 适配器：后续任务填充 think/fast
-  const adapters = {
-    "claude.ai": {
-      // 打开模型下拉。click 会 toggle，故先探测是否已开，必要时重试一次。
-      _open: async function () {
-        const { waitFor, openMenu } = window.__SCH;
-        const trig = document.querySelector('[data-testid="model-selector-dropdown"]');
-        if (!trig) throw new Error("Claude: 模型按钮未找到");
-        if (!document.querySelector('[role="menuitemradio"]')) openMenu(trig);
-        let ok = await waitFor(() => document.querySelector('[role="menuitemradio"]'), 1500);
-        if (!ok) { openMenu(trig); ok = await waitFor(() => document.querySelector('[role="menuitemradio"]')); }
-        if (!ok) throw new Error("Claude: 模型菜单未展开");
-      },
-      _selectModel: async function (re) {
-        const { waitFor, findByText, clickEl, sleep, escMenus } = window.__SCH;
-        await this._open();
-        const item = await waitFor(() => findByText('[role="menuitemradio"]', re));
-        if (!item) { escMenus(); throw new Error("Claude: 未找到模型 " + re); }
-        clickEl(item);
-        await sleep(700); // 切模型后界面会重建，留足时间
-      },
-      // 设思考强度，兼容两种布局（切模型会重置思考态，故必须选完模型后再设）：
-      //  - 宽屏(独立标签)：模型下拉里有 effort 子菜单 Low/Medium/High/Extra/Max
-      //  - 窄屏(chatHub 内嵌)：只有一个 "Adaptive thinking" 开关([role=switch] aria-checked)
-      // on=true → 最高思考(Max / 开关打开)；on=false → 最低(Low / 开关关闭)
-      _setThinking: async function (on) {
-        const { waitFor, findByText, openMenu, clickEl, sleep, escMenus } = window.__SCH;
-        await this._open();
-        // 窄屏：思考开关
-        const sw = [...document.querySelectorAll('[role="switch"]')]
-          .find((s) => /thinking/i.test((s.getAttribute("aria-label") || "") +
-            (s.closest('[role="menuitem"]') ? s.closest('[role="menuitem"]').textContent : "")));
-        if (sw) {
-          const isOn = sw.getAttribute("aria-checked") === "true";
-          if (isOn !== on) clickEl(sw);
-          await sleep(300); escMenus(); return;
-        }
-        // 宽屏：effort 子菜单
-        const trig = document.querySelector('[data-testid="effort-menu-trigger"]');
-        if (trig) {
-          openMenu(trig);
-          const lvl = await waitFor(() => findByText('[role="menuitemradio"]', on ? /max/i : /^low/i));
-          if (lvl) clickEl(lvl);
-          await sleep(300); escMenus(); return;
-        }
-        // 两者都没有：模型已切，思考档不可用，静默跳过
-        escMenus();
-      },
-      think: async function () {
-        await this._selectModel(/opus\s*4\.8/i);
-        await this._setThinking(true);
-      },
-      fast: async function () {
-        // 均衡快速档 = Sonnet + 关闭深度思考
-        await this._selectModel(/sonnet/i);
-        await this._setThinking(false);
-      },
-    },
-    "chatgpt.com": {
-      // composer 上的 Intelligence 按钮，文案=当前档(Instant/Medium/High)
-      _anchor: function () {
-        return [...document.querySelectorAll('button[aria-haspopup="menu"]')]
-          .find((x) => /^(Instant|Medium|High)$/i.test((x.textContent || "").trim()));
-      },
-      _select: async function (re) {
-        const { waitFor, findByText, openMenu, clickEl, sleep, escMenus } = window.__SCH;
-        const anchor = this._anchor();
-        if (!anchor) throw new Error("ChatGPT: Intelligence 按钮未找到");
-        const probe = () => {
-          const wrap = document.querySelector("[data-radix-popper-content-wrapper]") || document;
-          return findByText('[role="menuitemradio"]', re, wrap);
-        };
-        if (!probe()) openMenu(anchor);
-        let item = await waitFor(probe, 1500);
-        if (!item) { openMenu(anchor); item = await waitFor(probe); }
-        if (!item) { escMenus(); throw new Error("ChatGPT: 未找到档位 " + re); }
-        clickEl(item);
-        await sleep(400);
-      },
-      think: async function () { await this._select(/^high$/i); },
-      fast: async function () { await this._select(/^medium$/i); },
-    },
-    "gemini.google.com": {
-      _MI: "button.mat-mdc-menu-item, [role=menuitem]",
-      // 用稳定的 aria-label 定位（"Open mode picker, currently …"）。窄屏布局下该按钮没有
-      // aria-haspopup，故不能按 [aria-haspopup] 过滤，直接全量 button 里匹配 aria-label。
-      _modelBtn: function () {
-        const byAria = [...document.querySelectorAll("button")]
-          .find((b) => /mode picker/i.test(b.getAttribute("aria-label") || ""));
-        return byAria || document.querySelector('button[class*="input-area-swi"]');
-      },
-      _openModelMenu: async function () {
-        const { waitFor, openMenu } = window.__SCH;
-        const btn = this._modelBtn();
-        if (!btn) throw new Error("Gemini: 模型按钮未找到");
-        if (!document.querySelector(this._MI)) openMenu(btn);
-        let ok = await waitFor(() => document.querySelector(this._MI), 1500);
-        if (!ok) { openMenu(btn); ok = await waitFor(() => document.querySelector(this._MI)); }
-        if (!ok) throw new Error("Gemini: 模型菜单未展开");
-      },
-      _selectModel: async function (re) {
-        const { waitFor, findByText, clickEl, sleep, escMenus } = window.__SCH;
-        await this._openModelMenu();
-        const item = await waitFor(() => findByText(this._MI, re));
-        if (!item) { escMenus(); throw new Error("Gemini: 未找到模型 " + re); }
-        clickEl(item);
-        await sleep(700);
-      },
-      // Material 嵌套子菜单(Thinking level → Standard/Extended)用合成事件打开不稳定：
-      // 仅在子菜单项尚未出现时才点 trigger(避免 toggle 关掉)，轮询重试，命中后 Enter+click 双保险提交。
-      // re 须能区分子菜单项与 trigger(如 /^extended/i 只匹配项 "Extended …"，不匹配 "Thinking level Extended")。
-      _setThinking: async function (re) {
-        const { waitFor, findByText, openMenu, clickEl, sleep, escMenus } = window.__SCH;
-        await this._openModelMenu();
-        const trig = await waitFor(() => findByText(this._MI, /thinking level/i));
-        if (!trig) { escMenus(); return; } // 无思考档控件，跳过
-        let lvl = null;
-        for (let i = 0; i < 6 && !lvl; i++) {
-          if (!findByText(this._MI, re)) openMenu(trig);
-          lvl = await waitFor(() => findByText(this._MI, re), 600);
-        }
-        if (!lvl) { escMenus(); return; } // 子菜单始终打不开：模型已切，思考档放弃(不报错)
-        if (lvl.focus) lvl.focus();
-        lvl.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-        clickEl(lvl);
-        await sleep(400);
-        escMenus();
-      },
-      think: async function () {
-        await this._selectModel(/3\.1\s*pro\b/i);
-        await this._setThinking(/^extended/i);
-      },
-      fast: async function () {
-        await this._selectModel(/3\.5\s*flash\b/i);
-      },
-    },
-  };
+  // 注册表：适配器由 adapters.js 填充
+  const adapters = {};
 
   function pickAdapter() {
     const h = location.hostname;
@@ -221,6 +87,6 @@
     if (d.mode === "think" || d.mode === "fast") runMode(d.mode);
   });
 
-  // 暴露给行为测试（注入主世界后直接调用）
+  // 暴露给 adapters.js 注册与行为测试（注入主世界后直接调用）
   window.__SCH = { runMode, adapters, waitFor, findByText, openMenu, clickEl, sleep, escMenus };
 })();

@@ -23,8 +23,16 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://claude.ai/*", "https://chatgpt.com/*", "https://gemini.google.com/*"],
-      "js": ["custom/switcher.js"],
+      "matches": [
+        "https://claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://gemini.google.com/*",
+        "https://www.doubao.com/*",
+        "https://chat.deepseek.com/*",
+        "https://www.qianwen.com/*",
+        "https://www.kimi.com/*"
+      ],
+      "js": ["custom/switcher.js", "custom/adapters.js"],
       "all_frames": true,
       "run_at": "document_idle"
     }
