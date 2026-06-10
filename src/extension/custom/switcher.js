@@ -60,7 +60,20 @@
     } catch (e) {}
   }
 
-  // 注册表：适配器由 adapters.js 填充
+  // 切换成功后把光标放回输入框：取视口内可见、面积最大的编辑区
+  function focusComposer() {
+    try {
+      const cands = [...document.querySelectorAll('textarea, [contenteditable="true"]')]
+        .map((el) => ({ el, r: el.getBoundingClientRect() }))
+        .filter(({ r }) => r.width > 80 && r.height > 20 &&
+          r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth);
+      if (!cands.length) return;
+      cands.sort((a, b) => b.r.width * b.r.height - a.r.width * a.r.height);
+      cands[0].el.focus();
+    } catch (e) {}
+  }
+
+  // 注册表：适配器由 adapters-intl.js / adapters-cn.js 填充
   const adapters = {};
 
   function pickAdapter() {
@@ -72,14 +85,34 @@
   async function runMode(mode) {
     const a = pickAdapter();
     if (!a || !a[mode]) return;
-    try {
-      escMenus(); // 清掉可能残留的菜单，保证从干净态开始
-      await sleep(150);
-      await a[mode]();
-      toast(mode === "think" ? "已切到：深度思考" : "已切到：快速模型", true);
-    } catch (e) {
-      toast("切换失败：" + (e && e.message ? e.message : e), false);
+    // 站点偶发渲染抖动会导致首次失败：静默重试一次，仍失败才报错
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        escMenus(); // 清掉可能残留的菜单，保证从干净态开始
+        await sleep(attempt ? 600 : 150);
+        await a[mode]();
+        toast(mode === "think" ? "已切到：深度思考" : "已切到：快速模型", true);
+        focusComposer();
+        try { document.dispatchEvent(new CustomEvent("sch:switched")); } catch (e) {}
+        return;
+      } catch (e) {
+        if (attempt) toast("切换失败：" + (e && e.message ? e.message : e), false);
+      }
     }
+  }
+
+  // 当前档位（同步快速读）；底层能力，暂无 UI 调用方
+  function getState() {
+    const a = pickAdapter();
+    try { return a && a.state ? a.state() : null; } catch (e) { return null; }
+  }
+
+  // 只读健康自检；底层能力，暂无 UI 调用方
+  function diagnose() {
+    const a = pickAdapter();
+    if (!a) return [{ name: "站点适配器", ok: false }];
+    if (a.diagnose) { try { return a.diagnose(); } catch (e) { return [{ name: "diagnose 异常", ok: false }]; } }
+    return [{ name: "档位可读", ok: getState() != null }];
   }
 
   // 只接受来自本扩展页面(chatHub)的指令：发送方 origin 必须是本扩展的 chrome-extension:// 源，
@@ -102,5 +135,5 @@
   });
 
   // 暴露给 adapters.js 注册与行为测试（注入主世界后直接调用）
-  window.__SCH = { runMode, adapters, waitFor, findByText, openMenu, clickEl, sleep, escMenus };
+  window.__SCH = { runMode, adapters, waitFor, findByText, openMenu, clickEl, sleep, escMenus, getState, diagnose };
 })();
