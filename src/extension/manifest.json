@@ -30,9 +30,11 @@
         "https://www.doubao.com/*",
         "https://chat.deepseek.com/*",
         "https://www.qianwen.com/*",
-        "https://www.kimi.com/*"
+        "https://www.kimi.com/*",
+        "https://yuanbao.tencent.com/*",
+        "https://chatglm.cn/*"
       ],
-      "js": ["custom/switcher.js", "custom/adapters.js"],
+      "js": ["custom/switcher.js", "custom/adapters-intl.js", "custom/adapters-cn.js"],
       "all_frames": true,
       "run_at": "document_idle"
     }

@@ -3,7 +3,8 @@
   "use strict";
 
   const HOSTS = ["claude.ai", "chatgpt.com", "gemini.google.com",
-    "doubao.com", "deepseek.com", "qianwen.com", "kimi.com"];
+    "doubao.com", "deepseek.com", "qianwen.com", "kimi.com",
+    "yuanbao.tencent.com", "chatglm.cn"];
 
   function broadcast(mode) {
     let sent = 0;
