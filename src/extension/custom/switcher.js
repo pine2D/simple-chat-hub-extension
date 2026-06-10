@@ -51,7 +51,8 @@
       const d = document.createElement("div");
       d.textContent = msg;
       d.style.cssText =
-        "position:fixed;z-index:2147483647;right:12px;bottom:12px;padding:8px 12px;" +
+        "position:fixed;z-index:2147483647;top:12px;left:50%;transform:translateX(-50%);" +
+        "max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:8px 12px;" +
         "border-radius:8px;font:13px/1.4 sans-serif;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);" +
         "background:" + (ok ? "#16a34a" : "#dc2626");
       document.body.appendChild(d);
