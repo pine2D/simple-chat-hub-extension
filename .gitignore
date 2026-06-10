@@ -3,3 +3,9 @@
 # 解包扩展的中间产物（原始 zip 已在仓库根目录）
 src/*.crx
 src/__MACOSX/
+
+# 本地工作文档(spec/plan)，不纳入仓库
+docs/superpowers/
+
+# 工具产物
+.codegraph/
