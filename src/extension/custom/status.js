@@ -37,6 +37,9 @@
   }
 
   function requestState(lf) {
+    // iframe 尚未导航到平台站点（仍为同源空文档，contentDocument 可读）时跳过：
+    // 此时 content script 未注入，postMessage 只会产生 targetOrigin 不匹配的异步噪音错误
+    try { if (lf.frame.contentDocument) return; } catch (e) {}
     try { lf.frame.contentWindow.postMessage({ source: "SCH_STATE_REQ" }, lf.origin); } catch (e) {}
   }
 
