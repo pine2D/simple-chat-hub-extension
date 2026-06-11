@@ -1,13 +1,16 @@
 // custom/status.js — chatHub 父页：档位状态 HUD。监听 iframe 推送的 SCH_STATE，
 // 在按钮组旁渲染各平台徽标（紫=think 琥珀=fast 灰=未知 红=自检/切换失败），点击看 diagnose 明细。
+// 已知限制：同平台多开窗口时各窗共享一条状态记录（last-write-wins），徽标按 iframe 逐个渲染但内容可能串台。
 (function () {
   "use strict";
 
   const HOSTS = window.__SCH_HOSTS || [];
   const COLORS = { think: "#7c3aed", fast: "#d97706", unknown: "#9ca3af", fail: "#dc2626" };
   const states = new Map(); // hosts.js 的 host 键 -> {state, checks, failed, ts, pending}
+  let pendTimer = null;
 
-  const hostEntry = (hostname) => HOSTS.find((h) => hostname.includes(h.host)) || null;
+  const hostEntry = (hostname) =>
+    HOSTS.find((h) => hostname === h.host || hostname.endsWith("." + h.host)) || null;
 
   // 当前打开的平台 iframe（按 HOSTS 过滤）
   function liveFrames() {
@@ -86,11 +89,13 @@
     const d = ev.data;
     if (!d || d.source !== "SCH_STATE") return;
     if (!isTrustedSiteOrigin(ev.origin)) return;
-    const entry = hostEntry(String(d.host || ""));
+    const entry = hostEntry(new URL(ev.origin).hostname);
     if (!entry) return;
     states.set(entry.host, {
       state: d.state === "think" || d.state === "fast" ? d.state : null,
-      checks: Array.isArray(d.checks) ? d.checks : null,
+      checks: Array.isArray(d.checks)
+        ? d.checks.filter((c) => c && typeof c === "object").map((c) => ({ name: String(c.name || ""), ok: !!c.ok }))
+        : null,
       failed: !!d.failed,
       ts: Date.now(),
       pending: false,
@@ -107,7 +112,8 @@
         states.set(lf.entry.host, Object.assign({}, rec, { pending: true }));
       });
       render();
-      setTimeout(() => {
+      if (pendTimer) clearTimeout(pendTimer);
+      pendTimer = setTimeout(() => {
         let stale = false;
         states.forEach((rec, k) => {
           if (rec.pending) { states.set(k, Object.assign({}, rec, { pending: false, state: null })); stale = true; }
