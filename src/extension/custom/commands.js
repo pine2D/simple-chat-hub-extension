@@ -15,15 +15,16 @@
       r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
   }
 
-  function label(el) {
-    return ((el.getAttribute("aria-label") || "") + " " +
-      (el.getAttribute("title") || "") + " " + (el.textContent || "")).trim();
+  // 逐属性独立匹配：拼接会破坏 ^stop$ 锚定（aria-label="Stop" + sr-only 文本 "Stop" 拼成 "Stop Stop" 漏判）
+  function matchesStop(el) {
+    return [el.getAttribute("aria-label"), el.getAttribute("title"), el.textContent]
+      .some((t) => t && STOP_RE.test(t.trim()));
   }
 
   function genericStop() {
     const hit = [...document.querySelectorAll("button, [role=button]")]
       .filter(visible)
-      .find((b) => STOP_RE.test(label(b)));
+      .find(matchesStop);
     if (!hit) return false; // 未在生成：静默无操作，不刷 toast
     S.clickEl(hit);
     return true;
@@ -54,7 +55,8 @@
   function runClear() {
     const el = S.findComposer();
     if (!el) return;
-    const cur = (readComposer(el) || "").trim();
+    // 判空前剥零宽字符：部分编辑器用零宽占位符撑空行
+    const cur = (readComposer(el) || "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
     if (cur) {
       lastCleared = readComposer(el);
       setComposer(el, "");
