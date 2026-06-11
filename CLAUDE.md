@@ -23,7 +23,7 @@ scripts/sync-adapters.sh push    # 本仓 → 姊妹仓
 **加新站点时本仓要改三处**（漏一处=该站静默不工作）：
 1. `src/extension/manifest.json` 的 `content_scripts.matches`
 2. 适配器（adapters-intl/cn）
-3. **`custom/panel.js` 的 `HOSTS` 数组**——按钮广播目标列表，与 manifest 是两份独立清单（实战教训）
+3. **`custom/hosts.js` 的 `__SCH_HOSTS` 数组**（panel.js 广播与 status.js HUD 共用），与 manifest 是两份独立清单（实战教训）
 
 **不要给本仓加 chrome.commands**：Alt+T/Alt+Y 已属于姊妹仓，同一组合键 Chrome 只能绑给一个扩展。
 

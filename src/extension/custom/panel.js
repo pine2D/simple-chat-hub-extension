@@ -2,9 +2,8 @@
 (function () {
   "use strict";
 
-  const HOSTS = ["claude.ai", "chatgpt.com", "gemini.google.com",
-    "doubao.com", "deepseek.com", "qianwen.com", "kimi.com",
-    "yuanbao.tencent.com", "chatglm.cn"];
+  // 站点清单在 custom/hosts.js（chatHub.html 中先加载）
+  const HOSTS = (window.__SCH_HOSTS || []).map((h) => h.host);
 
   function broadcast(mode) {
     let sent = 0;
