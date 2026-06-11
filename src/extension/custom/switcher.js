@@ -60,16 +60,22 @@
     } catch (e) {}
   }
 
-  // 切换成功后把光标放回输入框：取视口内可见、面积最大的编辑区
+  // 视口内可见、面积最大的编辑区（textarea / contenteditable）；找不到返回 null
+  function findComposer() {
+    const cands = [...document.querySelectorAll('textarea, [contenteditable="true"]')]
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.width > 80 && r.height > 20 &&
+        r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth);
+    if (!cands.length) return null;
+    cands.sort((a, b) => b.r.width * b.r.height - a.r.width * a.r.height);
+    return cands[0].el;
+  }
+
+  // 切换成功后把光标放回输入框
   function focusComposer() {
     try {
-      const cands = [...document.querySelectorAll('textarea, [contenteditable="true"]')]
-        .map((el) => ({ el, r: el.getBoundingClientRect() }))
-        .filter(({ r }) => r.width > 80 && r.height > 20 &&
-          r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth);
-      if (!cands.length) return;
-      cands.sort((a, b) => b.r.width * b.r.height - a.r.width * a.r.height);
-      cands[0].el.focus();
+      const el = findComposer();
+      if (el) el.focus();
     } catch (e) {}
   }
 
@@ -173,5 +179,5 @@
   }
 
   // 暴露给 adapters.js 注册与行为测试（注入主世界后直接调用）
-  window.__SCH = { runMode, adapters, waitFor, findByText, openMenu, clickEl, sleep, escMenus, getState, diagnose, pushState };
+  window.__SCH = { runMode, adapters, waitFor, findByText, openMenu, clickEl, sleep, escMenus, getState, diagnose, pushState, findComposer, toast, isTrustedOrigin };
 })();
