@@ -77,8 +77,8 @@
       b.textContent = lf.entry.abbr;
       b.title = lf.entry.host;
       b.style.cssText =
-        "display:inline-block;min-width:20px;text-align:center;margin-left:4px;padding:2px 5px;" +
-        "border-radius:999px;font:11px/1.4 sans-serif;color:#fff;cursor:pointer;user-select:none;" +
+        "display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;" +
+        "padding:0 5px;border-radius:9px;font:bold 10px/1 sans-serif;color:#fff;cursor:pointer;user-select:none;" +
         "background:" + colorOf(rec) + ";opacity:" + (rec && rec.pending ? ".45" : "1");
       b.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -151,9 +151,12 @@
     if (document.querySelector("[data-sch-hud]")) { clearInterval(iv); return; }
     const group = document.querySelector("[data-sch-group]");
     if (group) {
+      // 仪表条：中性底色容器收纳全部平台指示灯，与 32px 按钮行垂直居中
       const hud = document.createElement("span");
       hud.dataset.schHud = "1";
-      hud.style.cssText = "display:inline-flex;align-items:center;vertical-align:middle;margin-left:6px";
+      hud.style.cssText =
+        "display:inline-flex;align-items:center;gap:3px;vertical-align:middle;margin-left:6px;" +
+        "padding:3px 4px;border-radius:12px;background:rgba(127,127,127,.10)";
       group.appendChild(hud);
       clearInterval(iv);
       render();
