@@ -44,10 +44,12 @@
   }
 
   let pop = null;
-  function closePop() { if (pop) { pop.remove(); pop = null; } }
+  let popHost = null;
+  function closePop() { if (pop) { pop.remove(); pop = null; popHost = null; } }
 
   function showPop(badge, entry) {
     closePop();
+    popHost = entry.host;
     const rec = states.get(entry.host);
     const lines = [entry.host + " — " + (rec && rec.state ? (rec.state === "think" ? "深度思考" : "快速模型") : "未知")];
     ((rec && rec.checks) || []).forEach((c) => lines.push((c.ok ? "✓ " : "✗ ") + c.name));
@@ -104,6 +106,11 @@
       pending: false,
     });
     render();
+    // popover 正开着本平台的明细时随回包重绘（render 重建了徽标，需重新取锚点）
+    if (pop && popHost === entry.host) {
+      const b = document.querySelector('[data-sch-badge="' + entry.host + '"]');
+      if (b) showPop(b, entry); else closePop();
+    }
   });
 
   // think/fast 按钮点击 → 全徽标 pending，8s 未回报转灰；点击其他区域关闭 popover
