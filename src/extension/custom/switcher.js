@@ -94,9 +94,13 @@
         toast(mode === "think" ? "已切到：深度思考" : "已切到：快速模型", true);
         focusComposer();
         try { document.dispatchEvent(new CustomEvent("sch:switched")); } catch (e) {}
+        pushState();
         return;
       } catch (e) {
-        if (attempt) toast("切换失败：" + (e && e.message ? e.message : e), false);
+        if (attempt) {
+          toast("切换失败：" + (e && e.message ? e.message : e), false);
+          pushState({ failed: true });
+        }
       }
     }
   }
@@ -127,13 +131,47 @@
     }
   }
 
+  // —— 状态推送：仅 iframe 场景（chatHub 内）启用 ——
+  function extOrigin() {
+    try {
+      const id = chrome && chrome.runtime && chrome.runtime.id;
+      return id ? "chrome-extension://" + id : null; // fail-closed：拿不到 id 不推送
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 向父页(chatHub)推送当前档位；withDiag 附带只读体检结果，failed 标记切换失败
+  function pushState(opts) {
+    opts = opts || {};
+    if (window.top === window) return; // 顶层帧（单独访问站点）不推送
+    const target = extOrigin();
+    if (!target) return;
+    let checks = null;
+    if (opts.withDiag) {
+      try { checks = diagnose(); } catch (e) { checks = null; }
+    }
+    try {
+      window.parent.postMessage(
+        { source: "SCH_STATE", host: location.hostname, state: getState(), checks, failed: opts.failed || undefined },
+        target
+      );
+    } catch (e) {}
+  }
+
   window.addEventListener("message", (ev) => {
     const d = ev.data;
-    if (!d || d.source !== "SCH_TOGGLE") return;
-    if (!isTrustedOrigin(ev.origin)) return;
+    if (!d || !isTrustedOrigin(ev.origin)) return;
+    if (d.source === "SCH_STATE_REQ") { pushState({ withDiag: true }); return; }
+    if (d.source !== "SCH_TOGGLE") return;
     if (d.mode === "think" || d.mode === "fast") runMode(d.mode);
   });
 
+  // 注入后延迟一次只读体检推送（等站点渲染完）——打开 chatHub 即可见适配器健康度
+  if (window.top !== window) {
+    setTimeout(() => pushState({ withDiag: true }), 5000);
+  }
+
   // 暴露给 adapters.js 注册与行为测试（注入主世界后直接调用）
-  window.__SCH = { runMode, adapters, waitFor, findByText, openMenu, clickEl, sleep, escMenus, getState, diagnose };
+  window.__SCH = { runMode, adapters, waitFor, findByText, openMenu, clickEl, sleep, escMenus, getState, diagnose, pushState };
 })();
