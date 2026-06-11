@@ -10,7 +10,7 @@
     document.querySelectorAll("iframe").forEach((f) => {
       let url;
       try { url = new URL(f.src); } catch (e) { return; }
-      if (!HOSTS.some((h) => url.hostname.includes(h))) return;
+      if (!HOSTS.some((h) => url.hostname === h || url.hostname.endsWith("." + h))) return;
       try {
         f.contentWindow.postMessage({ source: "SCH_TOGGLE", mode }, url.origin);
         sent++;
