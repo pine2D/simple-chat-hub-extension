@@ -13,11 +13,9 @@
 | `src/extension/custom/adapters-intl.js` / `adapters-cn.js` | `content/adapters-intl.js` / `adapters-cn.js` |
 | 注册表前缀 `window.__SCH` | `window.__AMS` |
 
-同步脚本：
+同步脚本（check=检查漂移并给方向建议；pull=姊妹仓→本仓；push=本仓→姊妹仓；覆盖前展示差异，目标侧有未提交改动时拒绝执行）：
 ```bash
-scripts/sync-adapters.sh check   # 检查漂移（normalize 后 diff，给出方向建议）
-scripts/sync-adapters.sh pull    # 姊妹仓 → 本仓
-scripts/sync-adapters.sh push    # 本仓 → 姊妹仓
+scripts/sync-adapters.sh {check|pull|push}
 ```
 
 **加新站点时本仓要改三处**（漏一处=该站静默不工作）：
@@ -32,12 +30,14 @@ scripts/sync-adapters.sh push    # 本仓 → 姊妹仓
 ```
 src/extension/            上游 2.4.0 解包产物(unpacked)，bundle 已压缩 → 当黑盒
 ├── custom/panel.js       chatHub 页注入按钮(复用 New Chat 的 className) + 按 iframe.src 广播
+├── custom/hosts.js       chatHub 父页共享站点清单 __SCH_HOSTS（panel 广播与 status HUD 共用）
+├── custom/status.js      档位徽标 HUD：消费 iframe 推送的 SCH_STATE，点徽标看 diagnose popover
 ├── custom/switcher.js    核心：helpers + toast(顶部居中) + __SCH 注册表 + runMode(重试+聚焦)
-│                         + postMessage 监听(origin 校验 fail-closed，只认本扩展)
+│                         + postMessage 监听(origin 校验 fail-closed，只认本扩展) + pushState 状态推送
 ├── custom/adapters-*.js  9 站适配器(与姊妹仓同源)
 └── assets/chunk-*.js     上游 bundle —— 除两处外不要改
 ```
-- 通信契约：父页 `postMessage({source:"SCH_TOGGLE", mode:"think"|"fast"})` → iframe content script。
+- 通信契约：父页 `postMessage({source:"SCH_TOGGLE", mode:"think"|"fast"})` → iframe content script；iframe 回推 `{source:"SCH_STATE", host, state, checks, failed?}`（注入 5s 后 / 切换结束后 / 收到 `SCH_STATE_REQ` 时），双向 origin 校验均 fail-closed。
 - chatHub 的 iframe 宽约 **625-639px**，触发各站**紧凑布局**（与独立标签页 DOM 不同）——适配器必须双布局兼容；新适配先用 `Emulation.setDeviceMetricsOverride {width:639}` 仿真验证。
 - 元宝/智谱清言要进 chatHub，需在扩展设置里加自定义平台（Name+URL，见 CUSTOM_CONFIG_EXAMPLE.md）。
 

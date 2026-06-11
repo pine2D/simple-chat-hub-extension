@@ -105,13 +105,13 @@
     }
   }
 
-  // 当前档位（同步快速读）；底层能力，暂无 UI 调用方
+  // 当前档位（同步快速读）；经 pushState 供父页 HUD 消费
   function getState() {
     const a = pickAdapter();
     try { return a && a.state ? a.state() : null; } catch (e) { return null; }
   }
 
-  // 只读健康自检；底层能力，暂无 UI 调用方
+  // 只读健康自检；经 pushState(withDiag) 供父页 HUD 消费
   function diagnose() {
     const a = pickAdapter();
     if (!a) return [{ name: "站点适配器", ok: false }];

@@ -18,7 +18,7 @@ norm() {
             s/content\/adapters/X\/adapters/g; s/custom\/adapters/X\/adapters/g' "$1"
 }
 
-# 修复 1：对未提交文件 git log 输出空串时改用 echo "${ts:-0}" 兜底
+# 文件存在但从未提交时 git log 输出空串且 exit 0，需兜底为 0
 last_commit_ts() {
   local ts
   ts=$(git -C "$1" log -1 --format=%ct -- "$2" 2>/dev/null) || ts=0
@@ -30,7 +30,7 @@ check() {
   for f in "${FILES[@]}"; do
     local a="${SCH_DIR}/src/extension/custom/${f}"
     local b="${AMS_DIR}/content/${f}"
-    # 修复 3：文件缺失直接报错退出，不计入漂移
+    # 文件缺失是错误而非漂移，直接退出
     if [ ! -f "${a}" ]; then
       echo "缺失文件: ${a}"
       exit 2
@@ -57,7 +57,7 @@ check() {
   return "${drift}"
 }
 
-# 修复 2：pull 前检查本仓目标文件脏工作区
+# 将被覆盖的本仓文件有未提交改动时拒绝执行，防止覆盖丢失改动
 pull() {
   local f sch_files=()
   for f in "${FILES[@]}"; do
@@ -71,7 +71,6 @@ pull() {
     exit 3
   fi
   check || true
-  # 修复 5：复用 FILES 数组逐文件操作，消除硬编码花括号展开
   for f in "${FILES[@]}"; do
     cp "${AMS_DIR}/content/${f}" "${SCH_DIR}/src/extension/custom/${f}"
     perl -i -pe 's/window\.__AMS/window.__SCH/g; s/content\/adapters/custom\/adapters/g' \
@@ -80,7 +79,7 @@ pull() {
   echo "已同步: 姊妹仓 -> 本仓"
 }
 
-# 修复 2：push 前检查姊妹仓目标文件脏工作区
+# 将被覆盖的姊妹仓文件有未提交改动时拒绝执行，防止覆盖丢失改动
 push() {
   local f ams_files=()
   for f in "${FILES[@]}"; do
@@ -94,7 +93,6 @@ push() {
     exit 3
   fi
   check || true
-  # 修复 5：复用 FILES 数组逐文件操作，消除硬编码花括号展开
   for f in "${FILES[@]}"; do
     cp "${SCH_DIR}/src/extension/custom/${f}" "${AMS_DIR}/content/${f}"
     perl -i -pe 's/window\.__SCH/window.__AMS/g; s/custom\/adapters/content\/adapters/g' \
