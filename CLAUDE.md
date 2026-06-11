@@ -13,13 +13,12 @@
 | `src/extension/custom/adapters-intl.js` / `adapters-cn.js` | `content/adapters-intl.js` / `adapters-cn.js` |
 | 注册表前缀 `window.__SCH` | `window.__AMS` |
 
-同步命令（姊妹仓 → 本仓）：
+同步脚本：
 ```bash
-cp ~/projects/ai-model-switcher/content/adapters-{intl,cn}.js src/extension/custom/
-perl -i -pe 's/window\.__AMS/window.__SCH/g; s/content\/adapters/custom\/adapters/g' \
-  src/extension/custom/adapters-{intl,cn}.js
+scripts/sync-adapters.sh check   # 检查漂移（normalize 后 diff，给出方向建议）
+scripts/sync-adapters.sh pull    # 姊妹仓 → 本仓
+scripts/sync-adapters.sh push    # 本仓 → 姊妹仓
 ```
-反向同步：替换方向相反。
 
 **加新站点时本仓要改三处**（漏一处=该站静默不工作）：
 1. `src/extension/manifest.json` 的 `content_scripts.matches`
