@@ -147,12 +147,19 @@
     }
   }
 
-  // 向父页(chatHub)推送当前档位；withDiag 附带只读体检结果，failed 标记切换失败
+  // 向父页(chatHub)推送当前档位；withDiag 附带只读体检结果，failed 标记切换失败。
+  // 仅当直接父帧就是本扩展页时推送（ancestorOrigins[0]）：content script 是 all_frames 注入，
+  // 站点自身的嵌套子帧（如 Gemini 内部 iframe）的 parent 是站点主帧，向其推送只会产生
+  // targetOrigin 不匹配的噪音错误；该条件同时排除顶层帧（单独访问站点）场景
   function pushState(opts) {
     opts = opts || {};
-    if (window.top === window) return; // 顶层帧（单独访问站点）不推送
     const target = extOrigin();
     if (!target) return;
+    try {
+      if (!location.ancestorOrigins || location.ancestorOrigins[0] !== target) return;
+    } catch (e) {
+      return;
+    }
     let checks = null;
     if (opts.withDiag) {
       try { checks = diagnose(); } catch (e) { checks = null; }
